@@ -10,7 +10,10 @@
     <header>
         <div class="content-wrapper">       
             <div class="float-left">
-                <p class="site-title"><a href="/">F# ASP.NET MVC</a></p>
+                <p class="site-title">F# ASP.NET MVC</p>
+            </div>
+            <div class="float-right">
+                <a href="https://github.com/cbadke/hello-azure"><img class="github-link" src="~/Images/iconmonstr-github-10-icon.png" /></a>
             </div>
         </div>
     </header>
@@ -19,8 +22,106 @@
             <div class="content-wrapper">
                 <hgroup class="title">
                     <h1>Hello from Azure!</h1>
+                    <h2>Here is how I got this webapp deploying on Azure with Git!</h2>
                 </hgroup>
+                <p>Deploying an F# project to Azure via Git has a <a href="https://github.com/projectkudu/kudu/issues/137">known issue</a>. Typically you will be greeted with a deployment error such as:</p>
+
+                <code>error MSB4057: The target "Build" does not exist in the project.</code>
+
+                <p>or perhaps:</p>
+
+                <code>error MSB4019: The imported project "D:\Program Files (x86)\Microsoft F#\v4.0\Microsoft.FSharp.Targets" was not found.</code>
+
+                <p>After talking to the fine folks at GitHub I learned about a workaround that basically boiled down to shipping the F# compiler as part of your repo.</p>
+
+                <p>So how do we do this?</p>
             </div>
+        </section>
+        <section class="content-wrapper main-content clear-fix">
+            <h2>Gather Up MSBuild</h2>
+            <p>
+                First off you'll want to gather up the MSBuild directory that contains all the 
+                tasty treats that can build an F# project. These can be found at:
+            </p>
+            <code>C:\Program Files (x86)\Microsoft SDKs\F#\3.0\Framework\v4.0</code>
+            <p>
+                Depending on version of VS and libraries installed this might be somewhere slightly
+                 different. If you can't see it try searching for <code>fsc.exe</code>.
+            </p>
+            <p>
+                You'll need to copy all those files into your repo. For this project I chose 
+                <code>~/FSharpCompiler</code>. Dump everything in there.
+            </p>
+            <h3>Tweak The Targets</h3>
+            <p>
+                The Targets file you've now grabbed make certain assumptions about the location
+                of things. Your going to have to tweak them to tell the Target where to find 
+                your compiler exes.
+            </p>
+            <p>
+                Open up <code>Microsoft.FSharp.Targets</code> and modify the Fsc element so that 
+                ToolPath points to $(SolutionDir)\FSharpCompiler instead of $(FscToolPath).
+                <a href="https://github.com/cbadke/hello-azure/commit/3bbcb3a823c843e3b91cc805257808b95c1ab8c2">Like so.</a>
+            </p>
+
+            <h2>Gather Up FSharp.Core</h2>
+            <p>
+                The next thing missing is the actual FSharp.Core.dll. This one is kind of 
+                important. You can't F# without it. Grab the dll, sigdata and optdata files. 
+                I found mine here:
+            </p>
+
+            <code>C:\Program Files (x86)\Reference Assemblies\Microsoft\FSharp\3.0\Runtime\v4.0</code>
+
+            <p>Toss those three files into your ~/FSharpCompiler folder.</p>
+
+            <h2>Tell Your Projects</h2>
+
+            <p>
+                Now that you've got all your tooling ready to go, you need to tell your project
+                files where the new Targets and FSharp.Core.dll are.
+            </p>
+
+            <h3>Targets</h3>
+
+            <p>
+                You'll need to modify any project file that references Microsoft.FSharp.Targets 
+                (typically fsproj). The project will try to look in the default locations, we 
+                need to also look in our repo location.
+            </p>
+
+            <p>
+                You'd think that you could just turf the references to the other Targets files. 
+                You'd be wrong. If you remove the existing references then Visual Studio will 
+                think that your project needs upgrading.
+            </p>
+            
+            <p>
+                Instead, add a new Import statement to your project file and guard clauses to 
+                in the Condition attribute to prevent the other Targets from being loaded if
+                your repo file exists.
+                <a href="https://github.com/cbadke/hello-azure/commit/540b62e733c81467f46032ef789a76f2b283f8ad">Like so.</a>
+            </p>
+
+            <h3>Assembly References</h3>
+
+            <p>
+                Finally, update all your projects that refer to FSharp.Core.dll to point to the repo
+                relative path rather than the default dll. I tried using the NuGet package but it was 
+                an older version of the dll than I wanted and I had errors about not having the sigdata
+                available.
+                <a href="https://github.com/cbadke/hello-azure/commit/3bb887c6a94e838b19d195532c731cbef0db140d">Like so.</a>
+            </p>
+
+
+            <h2>Be Awesome!</h2>
+            
+            <p>Push all your hard work out to your Git repository and wait for Azure to do its magic!</p>
+
+            <p><img src="~/Images/great-success.png" alt="Great Success!" /></p>
+
+            <p>Happy hacking!</p>
+
         </section>
     </div>
 </body>
