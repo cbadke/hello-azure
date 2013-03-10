@@ -15,7 +15,6 @@ body {
 }
 
 a:link {
-    color: #333;
     outline: none;
     padding-left: 3px;
     padding-right: 3px;
@@ -453,6 +452,7 @@ ul#social li {
     a.twitter {
         background: url("../Images/twitter.png") no-repeat;
     }
+
 
 
 /********************
